@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header">
+    <h1><i class="fas fa-truck-moving"></i> Product Movements</h1>
+    <button class="btn btn-primary" onclick="toggleForm()">
+        <i class="fas fa-plus"></i> Add Movement
+    </button>
+</div>
+
+<div id="movementForm" class="form-container" style="display: none;">
+    <h3>Add New Movement</h3>
+    <form method="POST" action="{{ url_for('add_movement') }}">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="from_location">From Location:</label>
+                <select id="from_location" name="from_location">
+                    <option value="">-- Select Source --</option>
+                    {% for location in locations %}
+                    <option value="{{ location.location_id }}">{{ location.location_id }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="to_location">To Location:</label>
+                <select id="to_location" name="to_location">
+                    <option value="">-- Select Destination --</option>
+                    {% for location in locations %}
+                    <option value="{{ location.location_id }}">{{ location.location_id }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="product_id">Product:</label>
+                <select id="product_id" name="product_id" required>
+                    <option value="">-- Select Product --</option>
+                    {% for product in products %}
+                    <option value="{{ product.product_id }}">{{ product.product_id }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="qty">Quantity:</label>
+                <input type="number" id="qty" name="qty" min="1" required>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Save Movement
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="toggleForm()">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+        </div>
+    </form>
+</div>
+
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Movement ID</th>
+                <th>Timestamp</th>
+                <th>From Location</th>
+                <th>To Location</th>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for movement in movements %}
+            <tr>
+                <td>{{ movement.movement_id }}</td>
+                <td>{{ movement.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ movement.from_location or '-' }}</td>
+                <td>{{ movement.to_location or '-' }}</td>
+                <td>{{ movement.product_id }}</td>
+                <td>{{ movement.qty }}</td>
+                <td class="actions">
+                    <button class="btn btn-warning btn-sm"
+                            onclick="editMovement('{{ movement.movement_id }}', '{{ movement.from_location or '' }}', '{{ movement.to_location or '' }}', '{{ movement.product_id }}', {{ movement.qty }})">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <a href="{{ url_for('delete_movement', movement_id=movement.movement_id) }}"
+                       class="btn btn-danger btn-sm"
+                       onclick="return confirm('Are you sure you want to delete this movement?')">
+                        <i class="fas fa-trash"></i> Delete
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Edit Form (hidden by default) -->
+<div id="editForm" class="form-container" style="display: none;">
+    <h3>Edit Movement</h3>
+    <form method="POST" id="editMovementForm">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="edit_from_location">From Location:</label>
+                <select id="edit_from_location" name="from_location">
+                    <option value="">-- Select Source --</option>
+                    {% for location in locations %}
+                    <option value="{{ location.location_id }}">{{ location.location_id }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="edit_to_location">To Location:</label>
+                <select id="edit_to_location" name="to_location">
+                    <option value="">-- Select Destination --</option>
+                    {% for location in locations %}
+                    <option value="{{ location.location_id }}">{{ location.location_id }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="edit_product_id">Product:</label>
+                <select id="edit_product_id" name="product_id" required>
+                    <option value="">-- Select Product --</option>
+                    {% for product in products %}
+                    <option value="{{ product.product_id }}">{{ product.product_id }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="edit_qty">Quantity:</label>
+                <input type="number" id="edit_qty" name="qty" min="1" required>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Update Movement
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="hideEditForm()">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleForm() {
+    const form = document.getElementById('movementForm');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+function editMovement(movementId, fromLocation, toLocation, productId, qty) {
+    document.getElementById('edit_from_location').value = fromLocation || '';
+    document.getElementById('edit_to_location').value = toLocation || '';
+    document.getElementById('edit_product_id').value = productId;
+    document.getElementById('edit_qty').value = qty;
+
+    document.getElementById('editMovementForm').action = "{{ url_for('edit_movement', movement_id='') }}" + movementId;
+    document.getElementById('editForm').style.display = 'block';
+}
+
+function hideEditForm() {
+    document.getElementById('editForm').style.display = 'none';
+}
+</script>
+{% endblock %}

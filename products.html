@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header">
+    <h1><i class="fas fa-boxes"></i> Products Management</h1>
+    <button class="btn btn-primary" onclick="showAddProductForm()">
+        <i class="fas fa-plus"></i> Add Product
+    </button>
+</div>
+
+<!-- Add Product Form -->
+<div id="addProductForm" class="form-container" style="display: none;">
+    <h3><i class="fas fa-plus-circle"></i> Add New Product</h3>
+    <form method="POST" action="{{ url_for('add_product') }}">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="product_id">Product ID:</label>
+                <input type="text" id="product_id" name="product_id" required
+                       placeholder="Enter product ID (e.g., PROD001)" pattern="[A-Za-z0-9_]+"
+                       title="Only letters, numbers, and underscores allowed">
+                <small class="form-help">Use a unique identifier for the product</small>
+            </div>
+            <div class="form-group">
+                <label for="quantity">Initial Quantity:</label>
+                <input type="number" id="quantity" name="quantity" min="0" value="0"
+                       placeholder="Enter initial quantity">
+                <small class="form-help">Set the starting quantity (optional)</small>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="location_id">Storage Location:</label>
+                <select id="location_id" name="location_id">
+                    <option value="">-- Select Location --</option>
+                    {% for location in locations %}
+                    <option value="{{ location.location_id }}">{{ location.location_id }}</option>
+                    {% endfor %}
+                </select>
+                <small class="form-help">Where to store this product initially</small>
+            </div>
+            <div class="form-group">
+                <label for="description">Description (Optional):</label>
+                <textarea id="description" name="description" rows="3"
+                          placeholder="Enter product description"></textarea>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Save Product
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="hideAddProductForm()">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Edit Product Form -->
+<div id="editProductForm" class="form-container" style="display: none;">
+    <h3><i class="fas fa-edit"></i> Edit Product</h3>
+    <form method="POST" id="editProductFormAction">
+        <div class="form-group">
+            <label for="edit_product_id">Product ID:</label>
+            <input type="text" id="edit_product_id" name="product_id" required
+                   pattern="[A-Za-z0-9_]+" title="Only letters, numbers, and underscores allowed">
+        </div>
+        <div class="form-group">
+            <label for="edit_description">Description:</label>
+            <textarea id="edit_description" name="description" rows="3"></textarea>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Update Product
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="hideEditProductForm()">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Add Stock Form -->
+<div id="addStockForm" class="form-container" style="display: none;">
+    <h3><i class="fas fa-plus-circle"></i> Add Stock</h3>
+    <form method="POST" action="{{ url_for('add_stock') }}">
+        <input type="hidden" id="stock_product_id" name="product_id">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="stock_location_id">Location:</label>
+                <select id="stock_location_id" name="location_id" required>
+                    <option value="">-- Select Location --</option>
+                    {% for location in locations %}
+                    <option value="{{ location.location_id }}">{{ location.location_id }}</option>
+                    {% endfor %}
+                </select>
+                <small class="form-help">Where to add this stock</small>
+            </div>
+            <div class="form-group">
+                <label for="stock_quantity">Quantity:</label>
+                <input type="number" id="stock_quantity" name="quantity" min="1" value="1" required>
+                <small class="form-help">Quantity to add</small>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Add Stock
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="hideAddStockForm()">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+        </div>
+    </form>
+</div>
+
+<div class="table-container">
+    {% if product_data %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Product ID</th>
+                <th>Description</th>
+                <th>Locations & Quantities</th>
+                <th>Total Quantity</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product_id, data in product_data.items() %}
+            <tr>
+                <td>
+                    <strong>{{ product_id }}</strong>
+                </td>
+                <td>
+                    {% if data.product.description %}
+                    {{ data.product.description }}
+                    {% else %}
+                    <span class="text-muted">No description</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if data.locations %}
+                        {% for location in data.locations %}
+                        <div class="location-item">
+                            <span class="location-badge">{{ location.location_id }}</span>
+                            <span class="quantity-badge {% if location.quantity > 100 %}quantity-high{% elif location.quantity > 20 %}quantity-medium{% else %}quantity-low{% endif %}">
+                                {{ location.quantity }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <span class="text-muted">No stock available</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="quantity-badge {% if data.total_quantity > 100 %}quantity-high{% elif data.total_quantity > 20 %}quantity-medium{% else %}quantity-low{% endif %}">
+                        {{ data.total_quantity }}
+                    </span>
+                </td>
+                <td class="actions">
+                    <button class="btn btn-info btn-sm"
+                            onclick="showAddStockForm('{{ product_id }}')">
+                        <i class="fas fa-plus"></i> Add Stock
+                    </button>
+                    <button class="btn btn-warning btn-sm"
+                            onclick="showEditProductForm('{{ product_id }}', '{{ data.product.description or '' }}')">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <a href="{{ url_for('delete_product', product_id=product_id) }}"
+                       class="btn btn-danger btn-sm"
+                       onclick="return confirm('Are you sure you want to delete {{ product_id }}? This will also delete all movement records.')">
+                        <i class="fas fa-trash"></i> Delete
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-boxes fa-3x"></i>
+        <h3>No Products Found</h3>
+        <p>Get started by adding your first product to the inventory.</p>
+        <button class="btn btn-primary mt-2" onclick="showAddProductForm()">
+            <i class="fas fa-plus"></i> Add First Product
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<div class="stats-container">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-boxes"></i>
+        </div>
+        <div class="stat-info">
+            <h3>{{ product_data|length }}</h3>
+            <p>Total Products</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-cubes"></i>
+        </div>
+        <div class="stat-info">
+            <h3>{{ product_data.values()|sum(attribute='total_quantity') }}</h3>
+            <p>Total Items in Stock</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-map-marker-alt"></i>
+        </div>
+        <div class="stat-info">
+            <h3>{{ locations|length }}</h3>
+            <p>Total Locations</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// Product Form Functions
+function showAddProductForm() {
+    document.getElementById('addProductForm').style.display = 'block';
+    document.getElementById('product_id').focus();
+}
+
+function hideAddProductForm() {
+    document.getElementById('addProductForm').style.display = 'none';
+    document.getElementById('product_id').value = '';
+    document.getElementById('quantity').value = '0';
+    document.getElementById('description').value = '';
+    document.getElementById('location_id').value = '';
+}
+
+function showEditProductForm(productId, description) {
+    document.getElementById('edit_product_id').value = productId;
+    document.getElementById('edit_description').value = description || '';
+
+    document.getElementById('editProductFormAction').action = "{{ url_for('edit_product', product_id='') }}" + productId;
+    document.getElementById('editProductForm').style.display = 'block';
+    document.getElementById('edit_product_id').focus();
+}
+
+function hideEditProductForm() {
+    document.getElementById('editProductForm').style.display = 'none';
+}
+
+// Add Stock Functions
+function showAddStockForm(productId) {
+    document.getElementById('stock_product_id').value = productId;
+    document.getElementById('stock_location_id').value = '';
+    document.getElementById('stock_quantity').value = '1';
+
+    document.getElementById('addStockForm').style.display = 'block';
+    document.getElementById('stock_location_id').focus();
+}
+
+function hideAddStockForm() {
+    document.getElementById('addStockForm').style.display = 'none';
+}
+
+// Form validation
+document.addEventListener('DOMContentLoaded', function() {
+    // Add pattern validation feedback
+    const patternInputs = document.querySelectorAll('input[pattern]');
+    patternInputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            const pattern = new RegExp(this.pattern);
+            if (!pattern.test(this.value)) {
+                this.style.borderColor = 'var(--danger-color)';
+                this.style.background = '#f8d7da';
+            } else {
+                this.style.borderColor = 'var(--success-color)';
+                this.style.background = '#d4edda';
+            }
+        });
+    });
+});
+</script>
+
+<style>
+.location-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    gap: 0.5rem;
+}
+
+.location-badge {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.text-muted {
+    color: #6c757d !important;
+    font-style: italic;
+}
+
+.quantity-low {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+}
+
+.quantity-medium {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+}
+
+.quantity-high {
+    background: linear-gradient(135deg, #27ae60, #219a52);
+}
+
+.form-help {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-style: italic;
+}
+</style>
+{% endblock %}

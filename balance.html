@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header">
+    <h1><i class="fas fa-chart-bar"></i> Balance Report</h1>
+    <p>Current inventory balance across all locations</p>
+</div>
+
+<div class="table-container">
+    {% if balance_data %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Location</th>
+                <th>Quantity</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in balance_data %}
+            <tr>
+                <td>{{ item.product }}</td>
+                <td>{{ item.location }}</td>
+                <td>
+                    <span class="quantity-badge">{{ item.quantity }}</span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-inbox fa-3x"></i>
+        <h3>No inventory data available</h3>
+        <p>Add some product movements to see the balance report.</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="stats-container">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-boxes"></i>
+        </div>
+        <div class="stat-info">
+            <h3>{{ balance_data|length }}</h3>
+            <p>Product-Location Combinations</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-cubes"></i>
+        </div>
+        <div class="stat-info">
+            <h3>{{ balance_data|sum(attribute='quantity') }}</h3>
+            <p>Total Items in Inventory</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
